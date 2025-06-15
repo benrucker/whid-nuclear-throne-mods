@@ -1,0 +1,2 @@
+/load whid/characters/red
+/load whid/characters/shadow
