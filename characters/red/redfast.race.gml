@@ -1,0 +1,521 @@
+// TODO
+// damage player without playing explosion?
+
+// Notes
+// global.var means global across the entire game!
+
+#define init
+	// runs only once when the mod is loaded
+	// it is in global scope (not player)
+	
+	trace("init")
+
+	#macro eatables [EnemyBullet1, EnemyBullet2, EnemyBullet3, EnemyBullet4, projectile, Cactus, RadChest, RadMaggotChest, CarThrow, Maggot]
+	#macro eat_radius			20
+	#macro things_limit_default 3
+	#macro things_limit_tb		6
+	#macro things_limit skill_get(mut_throne_butt) ? things_limit_tb : things_limit_default // maybe set at level start instead of dynamically
+	
+	#macro red_width things_in_mouth_count * 0.5 + 1
+	
+	#macro bite_distance 10
+	
+	#macro min_spit_speed 7
+	#macro charge_max_damage 4			// max extra damage from charged projectiles
+	#macro charge_duration_frames 120	// length of charge
+	#macro charge_delay_frames 15		// time before charge start increasing damage
+	#macro charge_time clamp(other.time_things_spent_in_mouth - charge_delay_frames, 0, charge_duration_frames) / charge_duration_frames
+	#macro bonus_damage floor(charge_time * charge_max_damage)
+	
+	#macro try_to_bite button_pressed(index, "spec")
+	#macro try_to_smoke button_pressed(index, "horn")
+	
+	#macro ultra_invuln global.ultra[1]
+	#macro ultra_charging_inhale global.ultra[2]
+	
+	#macro invuln_seconds 10
+	
+	#macro red "redfast"
+	#macro red_instances instances_matching(Player, "race", red)
+	
+	global.spr_idle_r = sprite_add("askin/red_idle_right-Sheet.png", 8, 12, 12);
+	global.spr_walk_r = sprite_add("askin/red_walking_right-Sheet.png", 6, 12, 12);
+	global.spr_hurt_r = sprite_add("askin/red_hurt_right-Sheet.png", 3, 12, 12);
+	global.spr_dead_r = sprite_add("askin/red_dead_right-Sheet.png", 6, 12, 12);
+	
+	global.spr_idle_l = sprite_add("askin/red_idle_left-Sheet.png", 8, 12, 12);
+	global.spr_walk_l = sprite_add("askin/red_walking_left-Sheet.png", 6, 12, 12);
+	global.spr_hurt_l = sprite_add("askin/red_hurt_left-Sheet.png", 3, 12, 12);
+	global.spr_dead_l = sprite_add("askin/red_dead_left-Sheet.png", 6, 12, 12);
+
+	global.spr_sit1[0] = sprite_add("askin/red_throne_sit-Sheet.png", 1, 12, 12);
+	global.spr_sit2[0] = sprite_add("askin/red_throne_sit-Sheet.png", 1, 12, 12);
+
+	global.spr_mapicon = sprite_add("askin/red_map_icon-Sheet.png", 1, 12, 12);
+	global.mapicon  = sprite_add("askin/red_map_icon-Sheet.png", 1, 12, 12);
+	
+	
+	// global.loadout  = sprite_add("loadout.png", 1, 16, 16);
+	global.spr_portrait = sprite_add("askin/red_big_portrait.png", 1, 40, 243);
+	global.spr_select = sprite_add("askin/red_menu_select_portrait-Sheet.png", 1, 0, 0);
+	
+	
+	global.spr_ultra_choose = sprite_add("askin/ultras_choose.png", 2, 12, 16);
+	global.spr_ultra_icons[1] = sprite_add("askin/ultra_icon_a.png", 1, 9, 9);
+	global.spr_ultra_icons[2] = sprite_add("askin/ultra_icon_b.png", 1, 9, 9);
+	
+	#macro smoking_frames 38
+	global.spr_smoke_r = sprite_add("askin/red_smoking_right-Sheet.png", smoking_frames, 12, 12)
+	global.spr_smoke_l = sprite_add("askin/red_smoking_left-Sheet.png", smoking_frames, 12, 12)
+	
+	global.snd_select = sound_add("test_sounds/select.ogg");
+	global.snd_laugh = sound_add("test_sounds/laugh.ogg");
+	global.snd_start = sound_add("test_sounds/flashyn.ogg");
+	global.snd_dead = sound_add("test_sounds/die.ogg");
+	global.snd_hurt = sound_add("test_sounds/hurt1.ogg");
+	global.snd_chst = sound_add("test_sounds/wow.ogg");
+	global.snd_empty = sound_add("test_sounds/sad.ogg");
+	
+	global.snd_low_health = sound_add("test_sounds/low_h2.ogg");
+	global.snd_low_ammo = sound_add("test_sounds/low_ammo.ogg");
+
+	global.this_flag_is_incremented_on_create = 0
+
+	global.ultra[1] = 0;
+	global.ultra[2] = 0;
+
+	global.red_invincible = false
+
+	global.level_loading = false
+
+	while(true){
+		if(instance_exists(GenCont) || instance_exists(Menu)){
+			global.level_loading = true;
+		}
+		else if(global.level_loading){
+			global.level_loading = false;
+			level_start();
+		}
+		wait(0);
+	}
+
+
+#define race_name
+	return "red";
+
+
+#define race_menu_button
+	sprite_index = global.spr_select;
+
+
+#define race_menu_select
+	return global.snd_select
+
+
+#define race_menu_confirm
+	return global.snd_laugh
+
+
+#define race_text
+	return "THICK SKIN#EATS OUCHIES#BIG TOOFUMS";
+
+
+#define race_mapicon
+	return global.spr_mapicon;
+
+
+#define race_ttip
+	return choose("HE'S BLUE", "HE'S RED");
+
+
+#define race_ultra_name
+	switch(argument0) {
+	  case 1: return "CROCODILE TEARS";
+	  case 2: return "BIG APPETITE";
+	}
+
+
+#define race_ultra_text
+	switch(argument0) {
+	  case 1: return "TAKE NO @rDAMAGE#@sFOR @w7 SECONDS#@sAT START OF EACH @pLEVEL";
+	  case 2: return "PROJECTILES DO MORE @rDAMAGE#@sTHE @wLONGER @sTHEY'RE HELD";
+	}
+
+
+#define race_ultra_take
+	global.ultra[argument0] = 1;
+	if(instance_exists(mutbutton)) switch(argument0){
+	  case 1:
+	    sound_play(global.snd_empty);
+	    break;
+	  case 2:
+	    sound_play(global.snd_empty);
+	    break;
+	}
+
+
+#define race_ultra_button
+	sprite_index = global.spr_ultra_choose;
+	image_index = argument0 + 1;
+
+
+#define race_ultra_icon
+	return global.spr_ultra_icons[argument0];
+
+
+#define race_tb_text
+	return "EAT MORE PROJECTILES";
+
+
+#define race_portrait
+	return global.spr_portrait; // Portrait
+
+
+#define create
+	// create happens when a new run begins
+	// and it is already in player scope
+	
+	trace("create")
+	
+	smoking = false
+	things_in_mouth_count = 0
+	things_in_mouth = [null, null, null, null, null, null]
+	time_things_spent_in_mouth = 0
+	
+	face_right() // must go after things_in_mouth_count
+	facing_right = true
+	
+	global.modify_damage_endstep = null
+	trace(++global.this_flag_is_incremented_on_create)
+
+
+	spr_sit1 = global.spr_sit1;
+	spr_sit2 = global.spr_sit2;
+	
+	snd_wrld = global.snd_start;
+	// snd_valt = global.snd_empty;
+	// snd_crwn = global.snd_empty;
+	// snd_spch = global.snd_empty;
+	// snd_idpd = global.snd_empty;
+	// snd_cptn = global.snd_empty;
+	snd_dead = global.snd_dead;
+	snd_lowa = global.snd_low_ammo;
+	snd_lowh = global.snd_low_health;
+	snd_chst = global.snd_chst;
+	snd_hurt = global.snd_hurt;
+	
+
+
+#define step // step is already set in player scope
+	// step happens once on the loading screen & every frame while in a level
+	if (!smoking) {
+		
+		// change sprite upon flipping direction
+		if (!right && facing_right) {
+			face_left()
+			facing_right = false
+		} else if (right && !facing_right) {
+			face_right()
+			facing_right = true
+		}
+		
+		
+		if (facing_right) {
+			image_xscale = red_width
+		} else {
+			image_xscale = -(red_width)
+		}
+		
+		if (try_to_bite) {
+			if (things_in_mouth_count == 0) {
+				// try to grab projectiles out of the air
+
+				var angle = arctan2(mouse_y - y, mouse_x - x);
+				var bite_x = x + cos(angle) * bite_distance;
+				var bite_y = y + sin(angle) * bite_distance;
+				
+				with (instances_meeting_rectangle(
+					bite_x - eat_radius,
+					bite_y - eat_radius,
+					bite_x + eat_radius,
+					bite_y + eat_radius,
+					eatables
+				)) {
+					if (other.things_in_mouth_count >= things_limit) {
+						trace("eat limit reached")
+						break
+					}
+					trace("you ate a", object_get_name(object_index), self)
+					
+					if (object_index == RadChest || object_index == RadMaggotChest) {
+						// eat rads
+						my_health = 0
+						var rad_x = x
+						var rad_y = y
+						if (fork()) {
+							wait 0 // wait for the rads to spawn
+							eat_rads(other, rad_x, rad_y)
+							exit
+						}
+						continue
+					} else if (object_index == Maggot || object_index == Cactus) {
+						sound_play(snd_hurt)
+						instance_destroy()
+						continue
+					}
+					
+					other.things_in_mouth[other.things_in_mouth_count++] = {
+						obj: object_index,
+						speed: max(speed, min_spit_speed)
+					}
+					
+					instance_delete(self)
+				}
+				time_things_spent_in_mouth = 0
+
+			} else {
+				// play sound
+				// sound_play(global.snd_spit)
+				
+				// try to spit projectiles out
+				while (things_in_mouth_count > 0) {
+					with (instance_create(x, y, things_in_mouth[things_in_mouth_count - 1].obj)) {
+						
+						if (object_index == Cactus) {
+							team = other.team + 1;
+						} else {
+							var bonus_value = ultra_charging_inhale ? bonus_damage : 0
+							motion_add(
+								other.gunangle + (random(16) - 8) * other.accuracy,
+								(other.things_in_mouth[other.things_in_mouth_count - 1].speed + bonus_value)
+							);
+							image_angle = direction;
+							damage = damage + bonus_value
+							team = other.team
+						}
+						creator = other;
+					}
+					
+					things_in_mouth_count -= 1
+					
+					 // technically this next line isn't needed since the index gets overwritten later,
+					 // but if there are bugs, then bring it back
+					// things_in_mouth[things_in_mouth_count] = null
+				}
+				time_things_spent_in_mouth = 0
+
+				weapon_post(0, -3, 3); // weapon shift, camera shift, camera shake
+			}
+
+			
+		} else if (try_to_smoke) {
+			if (things_in_mouth_count > 0) {
+				things_in_mouth_count = 0
+				with (instance_create(x, y, Explosion)) {
+					damage = 3
+				}
+			}
+			
+			smoking = true
+			image_index = 0
+			speed = 0
+			if (right) {
+				spr_idle = global.spr_smoke_r
+				spr_walk = global.spr_smoke_r
+			} else {
+				spr_idle = global.spr_smoke_l
+				spr_walk = global.spr_smoke_l
+			}
+		} else if (things_in_mouth_count > 0) {
+			if (time_things_spent_in_mouth > charge_duration_frames) {
+				with (instance_create(x, y, Explosion)) {
+					damage = 3
+				}
+				time_things_spent_in_mouth = 0
+				things_in_mouth_count = 0
+			} else {
+				time_things_spent_in_mouth += 1
+			}
+		} 
+	} else { // red is smoking
+		if (speed > 0) {
+			// if the player moves, stop smoking
+			stop_smoking()
+		} else {
+			// prevent flipping
+			if (right)
+				image_xscale = 1
+			else 
+				image_xscale = -1
+	
+			// leaving smoking state if done
+			if (image_index + 1 > smoking_frames) {
+				stop_smoking()
+			}
+		}
+	}
+
+
+#define draw_begin
+	if (global.red_invincible) {
+		draw_sprite_ext(
+			sprite_index,
+			image_index,
+			x,
+			y-0.5, // magic number to recenter the sprite after y-scale
+			image_xscale  * right ? 1.1 : -1.1,
+			image_yscale * 1.2,
+			image_angle,
+			c_black,
+			image_alpha * 1
+		);
+	}
+
+
+#define face_left
+	spr_idle = global.spr_idle_l;
+	spr_walk = global.spr_walk_l;
+	spr_hurt = global.spr_hurt_l;
+	spr_dead = global.spr_dead_l;
+	image_xscale = -1
+	
+	
+#define face_right
+	spr_idle = global.spr_idle_r;
+	spr_walk = global.spr_walk_r;
+	spr_hurt = global.spr_hurt_r;
+	spr_dead = global.spr_dead_r;
+	image_xscale = 1
+
+
+#define stop_smoking
+	smoking = false
+	if (right) {
+		face_right()
+		facing_right = true
+	} else {
+		face_left()
+		facing_right = false
+	}
+
+
+#define modify_damage
+	with (red_instances) if (my_health < lsthealth) {
+		if (ultra_invuln && nexthurt > current_frame) {
+			trace("negated non-nexthurt damage")
+			my_health = lsthealth
+		} else if (my_health < lsthealth - 1) {
+			trace("reducing damage")
+			// if we've taken more than 1 point of damage, give us 1 point back
+			my_health += 1
+			lsthealth = my_health
+		}
+	}
+
+
+#define eat_rads(player, rad_x, rad_y)
+	with (player) {
+		with(instances_meeting_rectangle(x-30, y-30, x+30, y+30, Rad)) {
+			// hide the rads
+			x = -100
+			y = -100
+			speed = 0
+		}
+		
+		with(instances_meeting_point(-100, -100, Rad)) {
+			// eat the rads one by one
+			x = other.x
+			y = other.y
+			speed = 0.1
+			wait 1
+		}
+	}
+
+
+#define level_start
+	// code here runs at the start of every level
+	trace("level start!")
+	
+	with (red_instances) {
+		stop_smoking() // also sets look direction
+		
+		// damage reduction check
+		if (global.modify_damage_endstep != null) {
+			trace("deleting old endstep")
+			instance_delete(global.modify_damage_endstep)
+			global.modify_damage_endstep = null
+		}
+		global.modify_damage_endstep = script_bind_end_step(modify_damage, 1)
+		trace("bound endstep")
+		
+		var player = self
+		// be invuln for first 7 seconds
+		if (ultra_invuln && fork()) {
+			with (player) {
+				global.red_invincible = true
+				var invuln_elapsed_frames = 0
+				
+				while (invuln_elapsed_frames++ < 30 * invuln_seconds) {
+					nexthurt = current_frame + 15
+					trace('invuln')
+					wait 1
+				}
+				global.red_invincible = false
+				trace('no longer invincible')
+			}
+			exit
+		}
+	}
+
+
+#define game_start
+	// runs at the start of each run. not sure how it's different from "create"
+	trace("game start")
+	// sound_play(global.snd_empty);
+	
+
+#define instances_meeting_point(_x, _y, _obj)
+	/*
+		Returns all instances of the given object whose bounding boxes overlap the given position
+		Much better performance than checking 'position_meeting()' on every instance
+		
+		Args:
+			x/y - The position to search
+			obj - The object(s) to search
+	*/
+	
+	return (
+		instances_matching_le(
+		instances_matching_le(
+		instances_matching_ge(
+		instances_matching_ge(
+		_obj,
+		"bbox_right",  _x),
+		"bbox_bottom", _y),
+		"bbox_left",   _x),
+		"bbox_top",    _y)
+	);
+
+
+#define instances_meeting_rectangle(_x1, _y1, _x2, _y2, _obj)
+	/*
+		Returns all instances of the given object whose bounding boxes overlap the given rectangle
+		Much better performance than checking 'collision_rectangle()' on every instance
+		
+		Args:
+			x1/y1/x2/y2 - The rectangular area to search
+			obj         - The object(s) to search
+	*/
+	
+	return (
+		instances_matching_le(
+		instances_matching_le(
+		instances_matching_ge(
+		instances_matching_ge(
+		_obj,
+		"bbox_right",  _x1),
+		"bbox_bottom", _y1),
+		"bbox_left",   _x2),
+		"bbox_top",    _y2)
+	);
+
