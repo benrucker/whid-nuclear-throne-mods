@@ -4,8 +4,6 @@
 #define init
 	// runs only once when the mod is loaded
 	// it is in global scope (not player)
-	
-	trace("init")
 
 	#macro shadow "shadow"
 	#macro red_instances instances_matching(Player, "race", shadow)

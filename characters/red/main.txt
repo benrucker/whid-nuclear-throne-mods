@@ -1,1 +1,1 @@
-/loadrace redfast
+/loadrace red

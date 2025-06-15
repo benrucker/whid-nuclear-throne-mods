@@ -2,20 +2,28 @@
 // damage player without playing explosion?
 
 // Notes
-// global.var means global across the entire game!
+// The `global` namespace is per-mod. So it can be used for variables
+//   that need to stay in scope in all of the functions here, even when the 
+//   GML scope changes (like from player to enemy using the `with()` directive).
+
+// All logic must be under a `#define` tag. For example, you can't define macros
+// above `#define init`.
+
+
+
 
 #define init
 	// runs only once when the mod is loaded
 	// it is in global scope (not player)
-	
-	trace("init")
 
-	#macro eatables [EnemyBullet1, EnemyBullet2, EnemyBullet3, EnemyBullet4, projectile, Cactus, RadChest, RadMaggotChest, CarThrow, Maggot]
-	#macro eat_radius			20
-	#macro things_limit_default 3
-	#macro things_limit_tb		6
-	#macro things_limit skill_get(mut_throne_butt) ? things_limit_tb : things_limit_default // maybe set at level start instead of dynamically
+	#macro eatables [EnemyBullet1, EnemyBullet2, EnemyBullet3, EnemyBullet4, projectile, Cactus, RadChest, RadMaggotChest, CarThrow, Maggot, RadMaggot, Rad]
 	
+	#macro eat_radius					20
+	#macro max_things_in_mouth_default	3
+	#macro max_things_in_mouth_tb		6
+	#macro max_things_in_mouth skill_get(mut_throne_butt) ? max_things_in_mouth_tb : max_things_in_mouth_default
+
+	// TODO: Replace this with new sprite sheet when red has things in his mouth
 	#macro red_width things_in_mouth_count * 0.5 + 1
 	
 	#macro bite_distance 10
@@ -27,15 +35,15 @@
 	#macro charge_time clamp(other.time_things_spent_in_mouth - charge_delay_frames, 0, charge_duration_frames) / charge_duration_frames
 	#macro bonus_damage floor(charge_time * charge_max_damage)
 	
-	#macro try_to_bite button_pressed(index, "spec")
-	#macro try_to_smoke button_pressed(index, "horn")
+	#macro is_bite_button_pressed button_pressed(index, "spec")
+	#macro is_smoke_button_pressed button_pressed(index, "horn")
 	
 	#macro ultra_invuln global.ultra[1]
 	#macro ultra_charging_inhale global.ultra[2]
 	
 	#macro invuln_seconds 10
 	
-	#macro red "redfast"
+	#macro red "red"
 	#macro red_instances instances_matching(Player, "race", red)
 	
 	global.spr_idle_r = sprite_add("askin/red_idle_right-Sheet.png", 8, 12, 12);
@@ -88,11 +96,11 @@
 
 	global.level_loading = false
 
-	while(true){
-		if(instance_exists(GenCont) || instance_exists(Menu)){
+	while(true) {
+		if(instance_exists(GenCont) || instance_exists(Menu)) {
 			global.level_loading = true;
 		}
-		else if(global.level_loading){
+		else if(global.level_loading) {
 			global.level_loading = false;
 			level_start();
 		}
@@ -174,9 +182,6 @@
 #define create
 	// create happens when a new run begins
 	// and it is already in player scope
-	
-	trace("create")
-	
 	smoking = false
 	things_in_mouth_count = 0
 	things_in_mouth = [null, null, null, null, null, null]
@@ -186,8 +191,6 @@
 	facing_right = true
 	
 	global.modify_damage_endstep = null
-	trace(++global.this_flag_is_incremented_on_create)
-
 
 	spr_sit1 = global.spr_sit1;
 	spr_sit2 = global.spr_sit2;
@@ -206,8 +209,10 @@
 	
 
 
-#define step // step is already set in player scope
+#define step 
+	// step is in player scope
 	// step happens once on the loading screen & every frame while in a level
+	
 	if (!smoking) {
 		
 		// change sprite upon flipping direction
@@ -219,20 +224,22 @@
 			facing_right = true
 		}
 		
-		
 		if (facing_right) {
 			image_xscale = red_width
 		} else {
 			image_xscale = -(red_width)
 		}
 		
-		if (try_to_bite) {
+		
+		if (is_bite_button_pressed) {
 			if (things_in_mouth_count == 0) {
 				// try to grab projectiles out of the air
 
 				var angle = arctan2(mouse_y - y, mouse_x - x);
 				var bite_x = x + cos(angle) * bite_distance;
 				var bite_y = y + sin(angle) * bite_distance;
+				
+				var iteration = 0
 				
 				with (instances_meeting_rectangle(
 					bite_x - eat_radius,
@@ -241,27 +248,36 @@
 					bite_y + eat_radius,
 					eatables
 				)) {
-					if (other.things_in_mouth_count >= things_limit) {
-						trace("eat limit reached")
+					if (other.things_in_mouth_count >= max_things_in_mouth) {
 						break
 					}
-					trace("you ate a", object_get_name(object_index), self)
 					
-					if (object_index == RadChest || object_index == RadMaggotChest) {
+					if (object_index == RadChest || object_index == RadMaggotChest) { 
 						// eat rads
 						my_health = 0
 						var rad_x = x
 						var rad_y = y
-						if (fork()) {
-							wait 0 // wait for the rads to spawn
+						if (fork()) { 
+							wait(1) // wait for the rads to spawn
 							eat_rads(other, rad_x, rad_y)
 							exit
 						}
-						continue
-					} else if (object_index == Maggot || object_index == Cactus) {
-						sound_play(snd_hurt)
+						exit
+					} else if (object_index == Maggot || object_index == RadMaggot) {
+						instance_create(other.x, other.y, Rad)
+						instance_create(other.x, other.y, Rad)
 						instance_destroy()
-						continue
+						exit
+					} else if (object_index == Cactus) {
+						sound_play(global.snd_hurt)
+						instance_destroy()
+						exit
+					} else if (object_index == Rad) {
+						if (fork()) { 
+							eat_rads(other, x, y)
+							exit
+						}
+						exit;
 					}
 					
 					other.things_in_mouth[other.things_in_mouth_count++] = {
@@ -269,20 +285,26 @@
 						speed: max(speed, min_spit_speed)
 					}
 					
-					instance_delete(self)
+					instance_destroy()
+					exit
 				}
 				time_things_spent_in_mouth = 0
 
 			} else {
-				// play sound
+				// TODO: play spit sound
 				// sound_play(global.snd_spit)
 				
 				// try to spit projectiles out
 				while (things_in_mouth_count > 0) {
-					with (instance_create(x, y, things_in_mouth[things_in_mouth_count - 1].obj)) {
-						
-						if (object_index == Cactus) {
-							team = other.team + 1;
+					var thing_in_mouth = things_in_mouth[things_in_mouth_count - 1]
+					if (thing_in_mouth == null) {
+						things_in_mouth_count = clamp(things_in_mouth_count - 1, 0, max_things_in_mouth)
+						continue;
+					}
+					
+					with (instance_create(x, y, thing_in_mouth.obj)) {
+						if ("damage" not in self) {
+							// pass
 						} else {
 							var bonus_value = ultra_charging_inhale ? bonus_damage : 0
 							motion_add(
@@ -296,19 +318,19 @@
 						creator = other;
 					}
 					
-					things_in_mouth_count -= 1
 					
-					 // technically this next line isn't needed since the index gets overwritten later,
-					 // but if there are bugs, then bring it back
-					// things_in_mouth[things_in_mouth_count] = null
+					things_in_mouth[things_in_mouth_count] = null
+					
+					things_in_mouth_count = clamp(things_in_mouth_count - 1, 0, max_things_in_mouth)
+					
 				}
 				time_things_spent_in_mouth = 0
 
-				weapon_post(0, -3, 3); // weapon shift, camera shift, camera shake
+				weapon_post(0, -3, 3); // Parameters: weapon shift, camera shift, camera shake
 			}
 
 			
-		} else if (try_to_smoke) {
+		} else if (is_smoke_button_pressed) {
 			if (things_in_mouth_count > 0) {
 				things_in_mouth_count = 0
 				with (instance_create(x, y, Explosion)) {
@@ -405,7 +427,6 @@
 			trace("negated non-nexthurt damage")
 			my_health = lsthealth
 		} else if (my_health < lsthealth - 1) {
-			trace("reducing damage")
 			// if we've taken more than 1 point of damage, give us 1 point back
 			my_health += 1
 			lsthealth = my_health
@@ -415,7 +436,7 @@
 
 #define eat_rads(player, rad_x, rad_y)
 	with (player) {
-		with(instances_meeting_rectangle(x-30, y-30, x+30, y+30, Rad)) {
+		with(instances_meeting_rectangle(rad_x-30, rad_y-30, rad_x+30, rad_y+30, Rad)) {
 			// hide the rads
 			x = -100
 			y = -100
@@ -434,7 +455,6 @@
 
 #define level_start
 	// code here runs at the start of every level
-	trace("level start!")
 	
 	with (red_instances) {
 		stop_smoking() // also sets look direction
