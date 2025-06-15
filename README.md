@@ -30,5 +30,6 @@ For example, the folder for `red` would be found at
 
 1. Clone the repo to the `mods` folder of NT
 2. Name the folder `whid`
-3. Install the recommended extensions when opened with VSCode
-   - If VSCode support is glitchy, then use GMEdit instead.
+3. Open one of the `main.txt` files in GMEdit
+4. Additionally have VSCode open to the git repo for nice diffs + git GUI
+   - Install the recommended VSCode extensions when prompted
