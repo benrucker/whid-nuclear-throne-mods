@@ -55,8 +55,12 @@
 	global.spr_hurt_l = sprite_add("askin/red_hurt_left-Sheet.png", 3, 12, 12);
 	global.spr_dead_l = sprite_add("askin/red_dead_left-Sheet.png", 6, 12, 12);
 	
+	global.spr_idle_r_big = sprite_add("askin/red_bloated_idle_right.png", 8, 12, 12);
+	global.spr_idle_l_big = sprite_add("askin/red_bloated_idle_left.png", 8, 12, 12);
 	global.spr_walk_r_big = sprite_add("askin/red_bloated_walking_right.png", 6, 12, 12);
 	global.spr_walk_l_big = sprite_add("askin/red_bloated_walking_left.png", 6, 12, 12);
+	global.spr_hurt_r_big = sprite_add("askin/red_bloated_hurt_right.png", 3, 12, 12);
+	global.spr_hurt_l_big = sprite_add("askin/red_bloated_hurt_left.png", 3, 12, 12);
 
 	global.spr_sit1[0] = sprite_add("askin/red_throne_sit-Sheet.png", 1, 12, 12);
 	global.spr_sit2[0] = sprite_add("askin/red_throne_sit-Sheet.png", 1, 12, 12);
@@ -217,7 +221,6 @@
 	
 	if (!smoking) {
 		
-		// change sprite upon flipping direction
 		if (!right) {
 			face_left()
 			facing_right = false
@@ -391,28 +394,28 @@
 
 #define face_left
     if (are_things_in_mouth) {
-		// TODO: Replace with big sprite
-		spr_idle = global.spr_idle_l;
+		spr_idle = global.spr_idle_l_big;
 		spr_walk = global.spr_walk_l_big;
+		spr_hurt = global.spr_hurt_l_big;
     } else {
 		spr_idle = global.spr_idle_l;
 		spr_walk = global.spr_walk_l;
+		spr_hurt = global.spr_hurt_l;
     }
-	spr_hurt = global.spr_hurt_l;
 	spr_dead = global.spr_dead_l;
 	image_xscale = -1
 	
 	
 #define face_right
     if (are_things_in_mouth) {
-		// TODO: Replace with big sprite
-		spr_idle = global.spr_idle_r;
+		spr_idle = global.spr_idle_r_big;
 		spr_walk = global.spr_walk_r_big;
+		spr_hurt = global.spr_hurt_r_big;
     } else {
 		spr_idle = global.spr_idle_r;
 		spr_walk = global.spr_walk_r;
+		spr_hurt = global.spr_hurt_r;
     }
-	spr_hurt = global.spr_hurt_r;
 	spr_dead = global.spr_dead_r;
 	image_xscale = 1
 
