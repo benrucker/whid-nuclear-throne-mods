@@ -23,8 +23,7 @@
 	#macro max_things_in_mouth_tb		6
 	#macro max_things_in_mouth skill_get(mut_throne_butt) ? max_things_in_mouth_tb : max_things_in_mouth_default
 
-	// TODO: Replace this with new sprite sheet when red has things in his mouth
-	#macro red_width things_in_mouth_count * 0.5 + 1
+    #macro are_things_in_mouth things_in_mouth_count > 0
 	
 	#macro bite_distance 10
 	
@@ -55,6 +54,9 @@
 	global.spr_walk_l = sprite_add("askin/red_walking_left-Sheet.png", 6, 12, 12);
 	global.spr_hurt_l = sprite_add("askin/red_hurt_left-Sheet.png", 3, 12, 12);
 	global.spr_dead_l = sprite_add("askin/red_dead_left-Sheet.png", 6, 12, 12);
+	
+	global.spr_walk_r_big = sprite_add("askin/red_bloated_walking_right.png", 6, 12, 12);
+	global.spr_walk_l_big = sprite_add("askin/red_bloated_walking_left.png", 6, 12, 12);
 
 	global.spr_sit1[0] = sprite_add("askin/red_throne_sit-Sheet.png", 1, 12, 12);
 	global.spr_sit2[0] = sprite_add("askin/red_throne_sit-Sheet.png", 1, 12, 12);
@@ -216,20 +218,13 @@
 	if (!smoking) {
 		
 		// change sprite upon flipping direction
-		if (!right && facing_right) {
+		if (!right) {
 			face_left()
 			facing_right = false
-		} else if (right && !facing_right) {
+		} else if (right) {
 			face_right()
 			facing_right = true
 		}
-		
-		if (facing_right) {
-			image_xscale = red_width
-		} else {
-			image_xscale = -(red_width)
-		}
-		
 		
 		if (is_bite_button_pressed) {
 			if (things_in_mouth_count == 0) {
@@ -395,16 +390,28 @@
 
 
 #define face_left
-	spr_idle = global.spr_idle_l;
-	spr_walk = global.spr_walk_l;
+    if (are_things_in_mouth) {
+		// TODO: Replace with big sprite
+		spr_idle = global.spr_idle_l;
+		spr_walk = global.spr_walk_l_big;
+    } else {
+		spr_idle = global.spr_idle_l;
+		spr_walk = global.spr_walk_l;
+    }
 	spr_hurt = global.spr_hurt_l;
 	spr_dead = global.spr_dead_l;
 	image_xscale = -1
 	
 	
 #define face_right
-	spr_idle = global.spr_idle_r;
-	spr_walk = global.spr_walk_r;
+    if (are_things_in_mouth) {
+		// TODO: Replace with big sprite
+		spr_idle = global.spr_idle_r;
+		spr_walk = global.spr_walk_r_big;
+    } else {
+		spr_idle = global.spr_idle_r;
+		spr_walk = global.spr_walk_r;
+    }
 	spr_hurt = global.spr_hurt_r;
 	spr_dead = global.spr_dead_r;
 	image_xscale = 1
