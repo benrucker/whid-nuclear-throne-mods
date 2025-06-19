@@ -1,5 +1,6 @@
 // TODO
-// damage player without playing explosion?
+//  - Audit variable creation. Instance vars omit a scope (e.g. "var", "global."), 
+//    so make sure we're not creating extraneous instance variables.
 
 // Notes
 // The `global` namespace is per-mod. So it can be used for variables
@@ -8,8 +9,6 @@
 
 // All logic must be under a `#define` tag. For example, you can't define macros
 // above `#define init`.
-
-
 
 
 #define init
@@ -82,6 +81,9 @@
 	global.spr_smoke_r = sprite_add("askin/red_smoking_right-Sheet.png", smoking_frames, 12, 12)
 	global.spr_smoke_l = sprite_add("askin/red_smoking_left-Sheet.png", smoking_frames, 12, 12)
 	
+	#macro bite_frames 8
+	global.spr_bite = sprite_add("askin/red_bite.png", bite_frames, 12, 12)
+	
 	global.snd_select = sound_add("test_sounds/select.ogg");
 	global.snd_laugh = sound_add("test_sounds/laugh.ogg");
 	global.snd_start = sound_add("test_sounds/flashyn.ogg");
@@ -99,6 +101,7 @@
 	global.ultra[2] = 0;
 
 	global.red_invincible = false
+	global.bite_frame = -1;
 
 	global.level_loading = false
 
@@ -182,7 +185,7 @@
 
 
 #define race_portrait
-	return global.spr_portrait; // Portrait
+	return global.spr_portrait;
 
 
 #define create
@@ -213,6 +216,8 @@
 	snd_chst = global.snd_chst;
 	snd_hurt = global.snd_hurt;
 	
+	global.bite_frame = -1;
+	
 
 
 #define step 
@@ -237,7 +242,16 @@
 				var bite_x = x + cos(angle) * bite_distance;
 				var bite_y = y + sin(angle) * bite_distance;
 				
-				var iteration = 0
+				// Spawn bite sprite
+				if (fork()) {
+					global.bite_frame = -1;
+					while (global.bite_frame++ < bite_frames) {
+						trace(global.bite_frame)
+						wait 1
+					}
+					global.bite_frame = -1;
+					exit
+				}
 				
 				with (instances_meeting_rectangle(
 					bite_x - eat_radius,
@@ -391,6 +405,20 @@
 		);
 	}
 
+#define draw_end 
+    if (global.bite_frame >= 0) {
+    	draw_sprite_ext(
+    		global.spr_bite,
+    		global.bite_frame,
+    		x,
+    		y,
+    		right ? 1 : -1,
+    		1,
+    		image_angle,
+    		noone,
+    		1,
+    	)
+    }
 
 #define face_left
     if (are_things_in_mouth) {
