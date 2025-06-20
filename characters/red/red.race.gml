@@ -243,15 +243,35 @@
 				var bite_y = y + sin(angle) * bite_distance;
 				
 				// Spawn bite sprite
-				if (fork()) {
-					global.bite_frame = -1;
-					while (global.bite_frame++ < bite_frames) {
-						trace(global.bite_frame)
-						wait 1
+				with (
+					instance_create(
+						bite_x,
+						bite_y,
+						CustomObject,
+					)
+				) {
+					creator = other;
+					offset_x = bite_x - other.x
+					offset_y = bite_y - other.y
+					on_step = Bite__on_step
+					image_xscale = other.right ? 1 : -1;
+					direction = angle;
+					with (instance_create(0, 0, RobotEat)) {
+						creator = other;
+						image_xscale = other.image_xscale
+						direction = other.direction
 					}
-					global.bite_frame = -1;
-					exit
+					if (fork()) {
+						for (var i = 0; i < bite_frames; i++) {
+							wait 1
+						}
+						instance_destroy()
+						exit;
+					}
 				}
+				sound_play(
+					sndRobotEat
+				)
 				
 				with (instances_meeting_rectangle(
 					bite_x - eat_radius,
@@ -530,6 +550,15 @@
 	// runs at the start of each run. not sure how it's different from "create"
 	trace("game start")
 	// sound_play(global.snd_empty);
+	
+	
+#define Bite__on_step
+    if (!instance_exists(creator)) {
+    	exit;
+    } else {
+	    x = creator.x + offset_x
+	    y = creator.y + offset_y
+    }
 	
 
 #define instances_meeting_point(_x, _y, _obj)
