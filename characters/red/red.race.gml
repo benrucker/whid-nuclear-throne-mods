@@ -245,20 +245,20 @@
 				// Spawn bite sprite
 				with (
 					instance_create(
-						bite_x,
-						bite_y,
+						0,
+						0,
 						CustomObject,
 					)
 				) {
 					creator = other;
-					offset_x = bite_x - other.x
-					offset_y = bite_y - other.y
-					on_step = Bite__on_step
+					offset_x = (other.right ? 3 : -3)
+					offset_y = 0
+					on_end_step = Bite__on_step
 					image_xscale = other.right ? 1 : -1;
 					direction = angle;
 					with (instance_create(0, 0, RobotEat)) {
 						creator = other;
-						image_xscale = other.image_xscale
+	    				image_xscale = other.image_xscale;
 						direction = other.direction
 					}
 					if (fork()) {
@@ -558,6 +558,7 @@
     } else {
 	    x = creator.x + offset_x
 	    y = creator.y + offset_y
+	    image_xscale = creator.right ? 1 : -1;
     }
 	
 
