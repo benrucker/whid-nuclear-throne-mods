@@ -94,7 +94,10 @@
 	
 	global.snd_low_health = sound_add("test_sounds/low_h2.ogg");
 	global.snd_low_ammo = sound_add("test_sounds/low_ammo.ogg");
-
+	
+	global.snd_bite = sound_add("test_sounds/bite.ogg");
+	global.snd_spit = sound_add("test_sounds/spit.ogg");
+	
 	global.this_flag_is_incremented_on_create = 0
 
 	global.ultra[1] = 0;
@@ -269,9 +272,7 @@
 						exit;
 					}
 				}
-				sound_play(
-					sndRobotEat
-				)
+				sound_play(global.snd_bite)
 				
 				with (instances_meeting_rectangle(
 					bite_x - eat_radius,
@@ -324,7 +325,7 @@
 
 			} else {
 				// TODO: play spit sound
-				// sound_play(global.snd_spit)
+				sound_play(global.snd_spit)
 				
 				// try to spit projectiles out
 				while (things_in_mouth_count > 0) {
