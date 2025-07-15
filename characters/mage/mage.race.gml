@@ -149,8 +149,6 @@
 	// create happens when a new run begins
 	// and it is already in player scope
 	
-	global.modify_damage_endstep = null
-
 	spr_sit1 = global.spr_sit1;
 	spr_sit2 = global.spr_sit2;
 	
@@ -171,8 +169,6 @@
 	snd_lowh = global.snd_low_health;
 	snd_chst = global.snd_chst;
 	snd_hurt = global.snd_hurt;
-	
-	global.bite_frame = -1;
 	
 
 
@@ -215,11 +211,8 @@
 
 #define draw_end 
     // draw_set_alpha(0.4)
-	draw_circle_color(self.x, self.y, near_radius, c_fuchsia, c_dkgray, false)
+	// draw_circle_color(self.x, self.y, near_radius, c_fuchsia, c_dkgray, false)
 	// draw_set_alpha(1)
-	
-
-
 
 
 #define level_start
@@ -231,7 +224,6 @@
 	// runs at the start of each run. not sure how it's different from "create"
 	trace("game start")
 	// sound_play(global.snd_empty);
-	
 	
 
 #define instances_meeting_point(_x, _y, _obj)
