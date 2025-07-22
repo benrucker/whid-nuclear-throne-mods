@@ -16,7 +16,7 @@
 	// it is in global scope (not player)
 
 
-	#macro near_radius	50
+	#macro near_radius	70
 
 
 	#macro is_right_click_pressed button_pressed(index, "spec")
@@ -25,7 +25,7 @@
 	#macro ultra_a global.ultra[1]
 	#macro ultra_b global.ultra[2]
 	
-	global.spr_idle = sprite_add("askin/red_idle_right-Sheet.png", 8, 12, 12);
+	global.spr_idle = sprite_add("askin/Sabbath_idle_01.png", 1, 12, 12);
 	global.spr_walk = sprite_add("askin/red_walking_right-Sheet.png", 6, 12, 12);
 	global.spr_hurt = sprite_add("askin/red_hurt_right-Sheet.png", 3, 12, 12);
 	global.spr_dead = sprite_add("askin/red_dead_right-Sheet.png", 6, 12, 12);
@@ -169,13 +169,33 @@
 	snd_lowh = global.snd_low_health;
 	snd_chst = global.snd_chst;
 	snd_hurt = global.snd_hurt;
+
+	created = true
+	casting_circle = noone
 	
 
 
 #define step 
 	// step is in player scope
 	// step happens once on the loading screen & every frame while in a level
+	if ("created" not in self) {
+		create()
+	}
+
+	if ("casting_circle" not in self || casting_circle == noone || !instance_exists(casting_circle)) {
+		trace("Creating casting circle")
+		with(instance_create(x, y, CustomObject)) {
+			depth = -10
+			creator = other;
+			other.casting_circle = self;
+			on_end_step = CastingCircle__on_step
+			on_draw = CastingCircle__on_draw
+			image_xscale = 1
+		}
+	}
+
 	var casting_state = get_interaction_state()
+
 
 
 #define get_interaction_state
@@ -211,7 +231,7 @@
 
 #define draw_end 
     // draw_set_alpha(0.4)
-	// draw_circle_color(self.x, self.y, near_radius, c_fuchsia, c_dkgray, false)
+	// draw_circle_color(self.x, self.y, near_radius, c_fuchsia, c_dkgray, true)
 	// draw_set_alpha(1)
 
 
@@ -225,6 +245,25 @@
 	trace("game start")
 	// sound_play(global.snd_empty);
 	
+
+#define CastingCircle__on_step
+
+
+#define CastingCircle__on_draw
+	if (!instance_exists(creator)) {
+    	exit;
+    } else {
+	    x = creator.x
+	    y = creator.y
+    }
+
+	draw_set_blend_mode(bm_subtract);
+	draw_set_alpha(0.1)
+	draw_circle_color(x, y, near_radius, c_black, $051511, false)
+	draw_set_blend_mode(bm_normal);
+	draw_set_alpha(1)
+    
+
 
 #define instances_meeting_point(_x, _y, _obj)
 	/*
