@@ -11,6 +11,10 @@
 // above `#define init`.
 
 
+// TODO: 
+// Swap hurt sprite to one with eye when entering a portal
+// 
+
 #define init
     // runs only once when the mod is loaded
     // it is in global scope (not player)
@@ -26,7 +30,8 @@
     #macro ultra_b global.ultra[2]
     
     global.spr_idle = sprite_add("askin/Sabbath_idle_noeye_01.png", 1, 12, 12);
-    global.spr_walk = sprite_add("askin/Sabbath_idle_noeye_01.png", 1, 12, 12);
+    global.spr_walk = sprite_add("askin/Sabbath_Running_01.png", 6, 12, 12);
+    global.spr_walk_eye_offset = [0, 1, 2, 2, 1, 0];
     global.spr_hurt = sprite_add("askin/Sabbath_hurt_noeye.png", 3, 12, 12);
     global.spr_dead = sprite_add("askin/Sabbath_idle_noeye_01.png", 1, 12, 12);
     
@@ -56,6 +61,10 @@
     
     global.snd_low_health = sound_add("test_sounds/low_h2.ogg");
     global.snd_low_ammo = sound_add("test_sounds/low_ammo.ogg");
+    
+    global.gesture_start_location = noone // “near” or “far”
+    global.gesture_current_location = noone
+    global.gesture_hold_duration = noone // number
 
     global.ultra[1] = 0;
     global.ultra[2] = 0;
@@ -206,26 +215,41 @@
 
 
 #define get_interaction_state
-    global.gesture_start_location = noone // “near” or “far”
-    global.gesture_current_location = noone
-    global.gesture_hold_duration = noone // number
+    var gesture_current_location = get_distance_from_char(mouse_x, mouse_y) > near_radius ? "far" : "near"
 
     if (is_right_click_pressed) {
-        if (gesture_hold_duration == noone) {
-            gesture_hold_duration = 0
+        if (global.gesture_hold_duration == noone) {
+            global.gesture_hold_duration = 0
         } else {
-            gesture_hold_duration += 1
+            global.gesture_hold_duration += 1
         }
         
-        gesture_current_location = get_distance_from_char(mouse_x, mouse_y) > near_radius ? "far" : "near"
-        
-        if (gesture_start_location == noone) {
-            gesture_start_location = gesture_current_location
+        if (global.gesture_start_location == noone) {
+            global.gesture_start_location = gesture_current_location
         }
-    } else {
-        gesture_start_location = noone
-        gesture_current_location = noone
-        gesture_hold_duration = noone
+        
+        return {
+            action: "holding",
+            from: global.gesture_start_location,
+            to: global.gesture_current_location,
+            duration: global.gesture_hold_duration,
+        }
+    }
+    
+    if (global.gesture_hold_duration != noone) {
+        global.gesture_start_location = noone
+        global.gesture_hold_duration = noone
+        
+        return {
+            action: "casting",
+            from: global.gesture_start_location,
+            to: global.gesture_current_location,
+            duration: global.gesture_hold_duration,
+        }
+    }
+    
+    return {
+        action: "nothing",
     }
 
 
@@ -249,7 +273,7 @@
     var eye_spr_index = get_eye_direction_spr_index();
 
     eye_offset_x = right ? 4 : -4
-    eye_offset_y = 3
+    eye_offset_y = 3 - global.spr_walk_eye_offset[sprite_index]
     eye_xscale = right ? 1 : -1
     
     draw_sprite_ext(spr_eye, eye_spr_index, x+eye_offset_x, y+eye_offset_y, eye_xscale, 1, 0, noone, 1)
