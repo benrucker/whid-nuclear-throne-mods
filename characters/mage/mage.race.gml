@@ -25,10 +25,10 @@
 	#macro ultra_a global.ultra[1]
 	#macro ultra_b global.ultra[2]
 	
-	global.spr_idle = sprite_add("askin/Sabbath_idle_01.png", 1, 12, 12);
-	global.spr_walk = sprite_add("askin/red_walking_right-Sheet.png", 6, 12, 12);
-	global.spr_hurt = sprite_add("askin/red_hurt_right-Sheet.png", 3, 12, 12);
-	global.spr_dead = sprite_add("askin/red_dead_right-Sheet.png", 6, 12, 12);
+	global.spr_idle = sprite_add("askin/Sabbath_idle_noeye_01.png", 1, 12, 12);
+	global.spr_walk = sprite_add("askin/Sabbath_idle_noeye_01.png", 1, 12, 12);
+	global.spr_hurt = sprite_add("askin/Sabbath_hurt_noeye.png", 3, 12, 12);
+	global.spr_dead = sprite_add("askin/Sabbath_idle_noeye_01.png", 1, 12, 12);
 	
 	global.spr_sit1[0] = sprite_add("askin/red_throne_sit-Sheet.png", 1, 12, 12);
 	global.spr_sit2[0] = sprite_add("askin/red_throne_sit-Sheet.png", 1, 12, 12);
@@ -36,16 +36,16 @@
 	global.spr_mapicon = sprite_add("askin/red_map_icon-Sheet.png", 1, 12, 12);
 	global.mapicon  = sprite_add("askin/red_map_icon-Sheet.png", 1, 12, 12);
 	
-	
 	// global.loadout  = sprite_add("loadout.png", 1, 16, 16);
 	global.spr_portrait = sprite_add("askin/red_big_portrait.png", 1, 40, 243);
 	global.spr_select = sprite_add("askin/red_menu_select_portrait-Sheet.png", 1, 0, 0);
 	
-	
 	global.spr_ultra_choose = sprite_add("askin/ultras_choose.png", 2, 12, 16);
 	global.spr_ultra_icons[1] = sprite_add("askin/ultra_icon_a.png", 1, 9, 9);
 	global.spr_ultra_icons[2] = sprite_add("askin/ultra_icon_b.png", 1, 9, 9);
-	
+
+	global.spr_eye = sprite_add("askin/sabbath eye sheet.png", 5, 7, 7);
+
 	global.snd_select = sound_add("test_sounds/select.ogg");
 	global.snd_laugh = sound_add("test_sounds/laugh.ogg");
 	global.snd_start = sound_add("test_sounds/flashyn.ogg");
@@ -120,11 +120,11 @@
 	global.ultra[argument0] = 1;
 	if(instance_exists(mutbutton)) switch(argument0){
 	  case 1:
-	    sound_play(global.snd_empty);
-	    break;
+		sound_play(global.snd_empty);
+		break;
 	  case 2:
-	    sound_play(global.snd_empty);
-	    break;
+		sound_play(global.snd_empty);
+		break;
 	}
 
 
@@ -170,8 +170,13 @@
 	snd_chst = global.snd_chst;
 	snd_hurt = global.snd_hurt;
 
+	spr_eye = global.spr_eye
+
 	created = true
 	casting_circle = noone
+	
+	mask_surface = noone;
+	clip_surface = noone;
 	
 
 
@@ -194,6 +199,8 @@
 		}
 	}
 
+	draw_eye();
+
 	var casting_state = get_interaction_state()
 
 
@@ -210,7 +217,7 @@
 			gesture_hold_duration += 1
 		}
 		
-		gesture_current_location = distance_from_char(mouse_x, mouse_y) > near_radius ? "far" : "near"
+		gesture_current_location = get_distance_from_char(mouse_x, mouse_y) > near_radius ? "far" : "near"
 		
 		if (gesture_start_location == noone) {
 			gesture_start_location = gesture_current_location
@@ -222,17 +229,30 @@
 	}
 
 
-#define distance_from_char(_x, _y)
+#define get_distance_from_char(_x, _y)
 	return point_distance(_x, _y, self.x, self.y)
 
 
 #define draw_begin
 
 
+
+#define draw
+	draw_eye();
+
+
 #define draw_end 
-    // draw_set_alpha(0.4)
-	// draw_circle_color(self.x, self.y, near_radius, c_fuchsia, c_dkgray, true)
-	// draw_set_alpha(1)
+
+
+
+#define draw_eye
+	var eye_spr_index = get_eye_direction_spr_index();
+
+	eye_offset_x = right ? 4 : -4
+	eye_offset_y = 3
+	eye_xscale = right ? 1 : -1
+	
+	draw_sprite_ext(spr_eye, eye_spr_index, x+eye_offset_x, y+eye_offset_y, eye_xscale, 1, 0, noone, 1)
 
 
 #define level_start
@@ -251,18 +271,66 @@
 
 #define CastingCircle__on_draw
 	if (!instance_exists(creator)) {
-    	exit;
-    } else {
-	    x = creator.x
-	    y = creator.y
-    }
+		exit;
+	} else {
+		x = creator.x
+		y = creator.y
+	}
 
 	draw_set_blend_mode(bm_subtract);
 	draw_set_alpha(0.1)
 	draw_circle_color(x, y, near_radius, c_black, $051511, false)
 	draw_set_blend_mode(bm_normal);
 	draw_set_alpha(1)
-    
+	
+
+
+#define get_eye_direction_degrees
+	var direction = 0;
+
+	if (mouse_x != x || mouse_y != y) {
+		direction = point_direction(x, y, mouse_x, mouse_y);
+	}
+
+	if (direction < 0) {
+		direction += 360;
+	}
+
+	return direction;
+
+
+#define get_eye_direction_spr_index
+	var spr_index_by_direction = {
+		top_middle:     0,
+		top_right:      1,
+		bottom_right:   2,
+		bottom_middle:  3,
+	}
+	
+	var direction_degrees = get_eye_direction_degrees()
+	
+	if (direction_degrees >= 0 && direction_degrees < 60) {
+		// Top right
+		return spr_index_by_direction.top_right
+	} else if (direction_degrees >= 60 && direction_degrees < 120) {
+		// Top middle
+		return spr_index_by_direction.top_middle
+	} else if (direction_degrees >= 120 && direction_degrees < 180) {
+		// Top left
+		return spr_index_by_direction.top_right
+	} else if (direction_degrees >= 180 && direction_degrees < 240) {
+		// Bottom left
+		return spr_index_by_direction.bottom_right
+	} else if (direction_degrees >= 240 && direction_degrees < 300) {
+		// Bottom middle
+		return spr_index_by_direction.bottom_middle
+	} else if (direction_degrees >= 300 && direction_degrees < 360) {
+		// Bottom right
+		return spr_index_by_direction.bottom_right
+	}
+	
+	
+
 
 
 #define instances_meeting_point(_x, _y, _obj)

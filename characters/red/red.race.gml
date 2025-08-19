@@ -418,7 +418,7 @@
 			image_index,
 			x,
 			y-0.5, // magic number to recenter the sprite after y-scale
-			image_xscale  * right ? 1.1 : -1.1,
+			image_xscale * right ? 1.1 : -1.1,
 			image_yscale * 1.2,
 			image_angle,
 			c_black,
