@@ -21,9 +21,10 @@
 
 
     #macro near_radius	70
+    #macro min_spell_charge_duration    10
 
 
-    #macro is_right_click_pressed button_pressed(index, "spec")
+    #macro is_right_click_pressed button_check(index, "spec")
     #macro is_taunt_button_pressed button_pressed(index, "horn")
     
     #macro ultra_a global.ultra[1]
@@ -186,8 +187,9 @@
     
     mask_surface = noone;
     clip_surface = noone;
-    
 
+    casting_state = noone;
+    
 
 #define step 
     // step is in player scope
@@ -210,22 +212,43 @@
 
     draw_eye();
 
-    var casting_state = get_interaction_state()
+    casting_state = get_interaction_state()
+
+    switch (casting_state.action) {
+        case "holding":
+            break;
+        case "casted":
+            switch (casting_state.spellType) {
+                case "dragOutOfCircle":
+                    break;
+                case "dragIntoCircle":
+                    break;
+                case "holdOutsideCircle":
+                    break;
+                case "holdInsideCircle":
+                    break;
+                case "clickOutsideCircle":
+                    break;
+                case "clickInsideCircle":
+                    break;
+            }
+            
+    }
 
 
 
 #define get_interaction_state
-    var gesture_current_location = get_distance_from_char(mouse_x, mouse_y) > near_radius ? "far" : "near"
+    global.gesture_current_location = get_distance_from_char(mouse_x, mouse_y) > near_radius ? "far" : "near"
 
     if (is_right_click_pressed) {
-        if (global.gesture_hold_duration == noone) {
+        if (global.gesture_hold_duration == noone) { // Holding begins
             global.gesture_hold_duration = 0
-        } else {
+        } else { // Holding continues
             global.gesture_hold_duration += 1
         }
         
-        if (global.gesture_start_location == noone) {
-            global.gesture_start_location = gesture_current_location
+        if (global.gesture_start_location == noone) { // Holding begins
+            global.gesture_start_location = global.gesture_current_location
         }
         
         return {
@@ -233,24 +256,53 @@
             from: global.gesture_start_location,
             to: global.gesture_current_location,
             duration: global.gesture_hold_duration,
+            spellType: get_spell_type(global.gesture_start_location, global.gesture_current_location, global.gesture_hold_duration)
         }
     }
     
     if (global.gesture_hold_duration != noone) {
-        global.gesture_start_location = noone
-        global.gesture_hold_duration = noone
-        
-        return {
-            action: "casting",
+        // Else right click was held on last frame, is up on this frame
+
+        // Build casting state
+        var returnValue = {
+            action: "casted",
             from: global.gesture_start_location,
             to: global.gesture_current_location,
             duration: global.gesture_hold_duration,
+            spellType: get_spell_type(global.gesture_start_location, global.gesture_current_location, global.gesture_hold_duration)
         }
+
+        // Reset global state
+        global.gesture_start_location = noone
+        global.gesture_hold_duration = noone
+
+        return returnValue
     }
-    
+
     return {
         action: "nothing",
     }
+
+
+#define get_spell_type(from, to, duration)
+    if (from != to) {
+        if (to == "far") {
+            return "dragOutOfCircle"
+        } else {
+            return "dragIntoCircle"
+        }
+    } else if (duration >= min_spell_charge_duration) {
+        if (to == "far") {
+            return "holdOutsideCircle";
+        } else {
+            return "holdInsideCircle";
+        }
+    } else if (to == "far") {
+        return "clickOutsideCircle"
+    } else {
+        return "clickInsideCircle"
+    }
+    
 
 
 #define get_distance_from_char(_x, _y)
@@ -263,6 +315,51 @@
 
 #define draw
     draw_eye();
+
+    switch (casting_state.action) {
+        case "holding":
+            break;
+        case "casted":
+            switch (casting_state.spellType) {
+                case "dragOutOfCircle":
+                    with (instance_create(mouse_x, mouse_y, PopupText)) {
+                        target = other.index;
+                        mytext = "dragged out of circle";
+                    }
+                    break;
+                case "dragIntoCircle":
+                    with (instance_create(mouse_x, mouse_y, PopupText)) {
+                        target = other.index;
+                        mytext = "dragged into circle";
+                    }
+                    break;
+                case "holdOutsideCircle":
+                    with (instance_create(mouse_x, mouse_y, PopupText)) {
+                        target = other.index;
+                        mytext = "held outside circle";
+                    }
+                    break;
+                case "holdInsideCircle":
+                    with (instance_create(mouse_x, mouse_y, PopupText)) {
+                        target = other.index;
+                        mytext = "held inside circle";
+                    }
+                    break;
+                case "clickOutsideCircle":
+                    with (instance_create(mouse_x, mouse_y, PopupText)) {
+                        target = other.index;
+                        mytext = "clicked outside circle";
+                    }
+                    break;
+                case "clickInsideCircle":
+                    with (instance_create(mouse_x, mouse_y, PopupText)) {
+                        target = other.index;
+                        mytext = "clicked inside circle";
+                    }
+                    break;
+            }
+            
+    }
 
 
 #define draw_end 
