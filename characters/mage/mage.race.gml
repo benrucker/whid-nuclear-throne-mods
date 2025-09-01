@@ -273,7 +273,7 @@
     var eye_spr_index = get_eye_direction_spr_index();
 
     eye_offset_x = right ? 4 : -4
-    eye_offset_y = 3 - global.spr_walk_eye_offset[sprite_index]
+    eye_offset_y = 3 - global.spr_walk_eye_offset[image_index]
     eye_xscale = right ? 1 : -1
     
     draw_sprite_ext(spr_eye, eye_spr_index, x+eye_offset_x, y+eye_offset_y, eye_xscale, 1, 0, noone, 1)
