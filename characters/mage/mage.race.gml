@@ -16,10 +16,6 @@
 // 
 
 #define init
-    // runs only once when the mod is loaded
-    // it is in global scope (not player)
-
-
     #macro near_radius	70
     #macro min_spell_charge_duration    10
 
@@ -39,12 +35,12 @@
     global.spr_sit1[0] = sprite_add("askin/red_throne_sit-Sheet.png", 1, 12, 12);
     global.spr_sit2[0] = sprite_add("askin/red_throne_sit-Sheet.png", 1, 12, 12);
 
-    global.spr_mapicon = sprite_add("askin/red_map_icon-Sheet.png", 1, 12, 12);
-    global.mapicon  = sprite_add("askin/red_map_icon-Sheet.png", 1, 12, 12);
+    global.spr_mapicon = sprite_add("askin/sabbath_map_icon.png", 1, 12, 12);
+    global.mapicon  = sprite_add("askin/sabbath_map_icon.png", 1, 12, 12);
     
     // global.loadout  = sprite_add("loadout.png", 1, 16, 16);
     global.spr_portrait = sprite_add("askin/red_big_portrait.png", 1, 40, 243);
-    global.spr_select = sprite_add("askin/red_menu_select_portrait-Sheet.png", 1, 0, 0);
+    global.spr_select = sprite_add("askin/sabbath_menu_select_portrait.png", 1, 0, 0);
     
     global.spr_ultra_choose = sprite_add("askin/ultras_choose.png", 2, 12, 16);
     global.spr_ultra_icons[1] = sprite_add("askin/ultra_icon_a.png", 1, 9, 9);
