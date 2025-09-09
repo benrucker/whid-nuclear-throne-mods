@@ -324,7 +324,6 @@
                 time_things_spent_in_mouth = 0
 
             } else {
-                // TODO: play spit sound
                 sound_play(global.snd_spit)
                 
                 // try to spit projectiles out

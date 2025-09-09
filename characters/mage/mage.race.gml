@@ -19,6 +19,8 @@
     #macro near_radius	70
     #macro min_spell_charge_duration    10
 
+    #macro power_recharge_rate  1
+
 
     #macro is_right_click_pressed button_check(index, "spec")
     #macro is_taunt_button_pressed button_pressed(index, "horn")
@@ -29,7 +31,7 @@
     global.spr_idle = sprite_add("askin/Sabbath_idle_noeye_01.png", 1, 12, 12);
     global.spr_walk = sprite_add("askin/Sabbath_Running_01.png", 6, 12, 12);
     global.spr_walk_eye_offset = [0, 1, 2, 2, 1, 0];
-    global.spr_hurt = sprite_add("askin/Sabbath_hurt_noeye.png", 3, 12, 12);
+    global.spr_hurt = sprite_add("askin/Sabbath_hurt.png", 3, 12, 12);
     global.spr_dead = sprite_add("askin/Sabbath_idle_noeye_01.png", 1, 12, 12);
     
     global.spr_sit1[0] = sprite_add("askin/red_throne_sit-Sheet.png", 1, 12, 12);
@@ -181,11 +183,9 @@
     created = true
     casting_circle = noone
     
-    mask_surface = noone;
-    clip_surface = noone;
-
     casting_state = noone;
-    
+    power_usage = 0;
+
 
 #define step 
     // step is in player scope
@@ -193,6 +193,13 @@
     if ("created" not in self) {
         create()
     }
+
+    if (power_usage > 110) {
+        my_health -= floor(((power_usage - 100) / 10))
+        power_usage = 100
+    }
+
+    power_usage = power_usage > 0 ? power_usage - power_recharge_rate : 0;
 
     if ("casting_circle" not in self || casting_circle == noone || !instance_exists(casting_circle)) {
         trace("Creating casting circle")
@@ -216,16 +223,38 @@
         case "casted":
             switch (casting_state.spellType) {
                 case "dragOutOfCircle":
+                    power_usage += 25
                     break;
                 case "dragIntoCircle":
+                    power_usage += 25
                     break;
                 case "holdOutsideCircle":
+                    power_usage += 25
+                    with(instance_create(mouse_x, mouse_y, Explosion)) {
+                        creator = other;
+                        team = other.team
+                        // image_angle = direction
+                        image_blend = merge_color($48fd08, c_white, 0.5) // $321b3e
+                    }
                     break;
                 case "holdInsideCircle":
+                    power_usage += 25
                     break;
                 case "clickOutsideCircle":
+                    power_usage += 25
+                    with(instance_create(x, y, Bullet1)) {
+                        creator = other;
+                        team = other.team
+                        motion_add(
+                            other.gunangle + (random(16) - 8) * other.accuracy,
+                            15
+                        )
+                        image_angle = direction
+                        image_blend = merge_color($48fd08, c_white, 0.5) // $321b3e
+                    }
                     break;
                 case "clickInsideCircle":
+                    power_usage += 25
                     break;
             }
             
@@ -365,11 +394,15 @@
 #define draw_eye
     var eye_spr_index = get_eye_direction_spr_index();
 
+    if (sprite_index == spr_hurt) {
+        return;
+    }
+    
     eye_offset_x = right ? 4 : -4
     eye_offset_y = 3 - global.spr_walk_eye_offset[image_index]
     eye_xscale = right ? 1 : -1
     
-    draw_sprite_ext(spr_eye, eye_spr_index, x+eye_offset_x, y+eye_offset_y, eye_xscale, 1, 0, noone, 1)
+    draw_sprite_ext(spr_eye, eye_spr_index, x+eye_offset_x, y+eye_offset_y, eye_xscale, 1, 0, noone, 1)   
 
 
 #define level_start
@@ -394,15 +427,28 @@
         y = creator.y
     }
 
-    draw_set_blend_mode(bm_subtract);
-    draw_set_alpha(0.1)
-    draw_circle_color(x, y, near_radius, c_black, $051511, false)
-    draw_set_blend_mode(bm_normal);
+    draw_set_alpha(0.25)
+    draw_circle_color(x, y, near_radius, $051511, $051511, true)
     draw_set_alpha(1)
     
 
+    var usage_ratio = creator.power_usage / 100
+    if (usage_ratio > 1) {
+        var difference = usage_ratio - 1
+        usage_ratio = 1 + difference / 10
+    }
+    var stepped_usage_ratio = floor(creator.power_usage / 10)
+    
+    var radius = lerp(0, near_radius, stepped_usage_ratio / 10)
 
-#define get_eye_direction_degrees
+    draw_set_blend_mode(bm_subtract);
+    draw_set_alpha(0.2)
+    draw_circle_color(x, y, radius, c_black, $051511, false)
+    draw_set_blend_mode(bm_normal);
+    draw_set_alpha(1)
+
+
+#define get_direction_towards_mouse_normalized
     var direction = 0;
 
     if (mouse_x != x || mouse_y != y) {
@@ -424,7 +470,7 @@
         bottom_middle:  3,
     }
     
-    var direction_degrees = get_eye_direction_degrees()
+    var direction_degrees = get_direction_towards_mouse_normalized()
     
     if (direction_degrees >= 0 && direction_degrees < 60) {
         // Top right
